@@ -1,0 +1,15 @@
+---
+
+
+- name: get kubeadmin password
+  shell: 'cat {{ workdir }}/{{ clustername }}/auth/kubeadmin-password'
+  register: kubeadmin_pass
+
+
+- debug:
+    msg: "webconsole url is https://console-openshift-console.apps.{{ clustername }}.{{ basedomain }}"
+- debug:
+    msg: "kubeadmin password is {{ kubeadmin_pass.stdout }}"
+
+
+...

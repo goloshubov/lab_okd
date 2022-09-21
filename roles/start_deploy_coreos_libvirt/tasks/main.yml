@@ -1,0 +1,11 @@
+---
+
+- name: start vm deploy (libvirt)
+  delegate_to: localhost
+  become: yes
+  become_method: sudo
+  #become_user: root
+  debug:
+    msg: "deploy autostarted on provisioning stage"
+
+...

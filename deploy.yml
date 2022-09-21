@@ -1,0 +1,123 @@
+---
+
+#_______________________________________________________________________________
+# PREDEPLOY - PREREQUISITES
+
+- name: bastion (and httpd server)
+  hosts: bastion
+  gather_facts: no
+  become_method: sudo
+  tasks:
+    - debug:
+        msg: "> set up bastion node (prepare ignition, httpd server)"
+#    - import_role:
+#        name: provision_bastion
+#    - import_role:
+#        name: common
+    - import_role:
+        name: ignitions
+
+
+- name: loadbalancer
+  hosts: lb
+  gather_facts: no
+  become_method: sudo
+  tasks:
+    - debug:
+        msg: "> set up loadbalancer"
+#    - import_role:
+#        name: provision_lb
+#    - import_role:
+#        name: common
+    - import_role:
+        name: haproxy
+
+#- name: dns records
+#  hosts: dns
+#  #connection: local
+#  gather_facts: no
+#  become_method: sudo
+#  tasks:
+##    - import_role:
+##        name: provision_dns
+#    - import_role:
+#        name: common
+#    - import_role:
+#        name: dns
+
+#- name: dhcp server
+#  hosts: dhcp
+#  gather_facts: no
+#  become_method: sudo
+#  tasks:
+#    - debug:
+#        msg: "> set up dhcp server"
+##    - import_role:
+##        name: provision_dchp
+##    - import_role:
+##        name: common
+#    - import_role:
+#        name: dhcp
+
+#_______________________________________________________________________________
+# DEPLOY
+
+- name: provision (stage 0)
+  hosts: cluster
+#  connection: local
+#  become: yes
+#  become_method: sudo
+  order: inventory
+  gather_facts: no
+  serial:
+    - 1
+    - 3
+    - "100%"
+  tasks:
+    - debug:
+        msg: "> provision cluster node: {{ inventory_hostname }}"
+    - import_role:
+        name: provision_coreos_libvirt
+              #provision_coreos_vmware
+              #provision_coreos_nutanix
+              #provision_coreos_openstack
+
+- name: start deploy (stage 1)
+  hosts: cluster
+  #  connection: local
+  #  become: yes
+  #  become_method: sudo
+  order: inventory
+  gather_facts: no
+  serial:
+    - 1
+    - 3
+    - "100%"
+  tasks:
+    - debug:
+        msg: "> deploy cluster node: {{ inventory_hostname }}"
+    - import_role:
+        name: start_deploy_coreos_libvirt
+              #start_deploy_coreos_vmware
+              #start_deploy_coreos_nutanix
+              #start_deploy_coreos_openstack
+
+- name: finish deploy (stage 2)
+  hosts: bastion
+  gather_facts: no
+  tasks:
+    - import_role:
+        name: wait_bootstrap_complete
+    - import_role:
+        name: approve_workers_certs
+    - debug:
+        msg: "> cluster is up and running"
+    - import_role:
+        name: about_info
+
+#_______________________________________________________________________________
+# POSTDEPLOY - CONFIGURE CLUSTER
+#TODO
+
+
+...

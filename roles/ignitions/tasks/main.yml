@@ -1,0 +1,95 @@
+---
+
+# TODO
+#- name: install openshift-install tool
+
+- name: abort if cluster dir is already exists
+  stat:
+    path: '{{ workdir }}/{{ clustername }}'
+  register: clusterdir_check
+- fail:
+    msg: "{{ workdir }}/{{ clustername }} is already exists"
+  when: clusterdir_check.stat.exists
+
+
+- name: install httpd
+  yum:
+    name: httpd
+    state: latest
+    update_cache: yes
+
+- name: start and enable haproxy
+  service:
+    name: httpd
+    state: started
+    enabled: true
+
+- name: create new dir
+  file:
+    path: '~/.ssh'
+    state: directory
+    mode: '0700'
+    
+- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+  openssh_keypair:
+    path: ~/.ssh/id_rsa
+
+- name: register pub key
+  shell: cat ~/.ssh/id_rsa.pub
+  register: sshkey_raw
+- debug:
+    var: sshkey_raw
+- name: set sshkey
+  set_fact:
+    sshkey: "{{ sshkey_raw.stdout }}"
+
+- name: create new dir
+  file:
+    path: '{{ workdir }}/{{ clustername }}'
+    state: directory
+    mode: '0755'
+
+- name: copy install-config.yaml
+  template: src=templates/install-config.yaml.j2 dest={{ workdir }}/{{ clustername }}/install-config.yaml
+
+
+#_______________________________________________________________________________
+- name: create manifests
+  shell: '{{ workdir }}/openshift-install create manifests --dir={{ workdir }}/{{ clustername }}/'
+
+- name: disable master scheduling
+  lineinfile:
+    path: '{{ workdir }}/{{ clustername }}/manifests/cluster-scheduler-02-config.yml'
+    regexp: '^  mastersSchedulable: true'
+    line: '  mastersSchedulable: false'
+
+- name: create ignition-configs
+  shell: '{{ workdir }}/openshift-install create ignition-configs --dir={{ workdir }}/{{ clustername }}/'
+
+- name: create new dir (in httpd root)
+  file:
+    path: '{{ httpdrootdir }}/{{ clustername }}'
+    state: directory
+    mode: '0755'
+
+- name: find ignition files
+  find:
+    paths: '{{ workdir }}/{{ clustername }}'
+    patterns: '*.ign'
+  register: ignfiles
+
+- name: copy ignitions to httpd root dir
+  copy:
+    remote_src: yes
+    src: "{{ item.path }}"
+    dest: '{{ httpdrootdir }}/{{ clustername }}/'
+  with_items: "{{ ignfiles.files }}"
+
+- name: fix ignition permitions
+  file:
+    path: "{{ httpdrootdir }}/{{ clustername }}/"
+    mode: u=rwX,g=rX,o=rX
+    recurse: yes
+
+
+...

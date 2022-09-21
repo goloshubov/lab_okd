@@ -1,0 +1,29 @@
+---
+
+- name: create vm disk (libvirt)
+  delegate_to: localhost
+  become: yes
+  become_method: sudo
+  #become_user: root
+  shell: 'qemu-img create -f qcow2 {{ vm_stor }}/{{ clustername }}_{{ inventory_hostname }}.qcow2 {{ vm_disksize }}G'
+  register: disk_result
+
+- debug:
+    var: disk_result
+
+- name: provision vm (libvirt)
+  delegate_to: localhost
+  become: yes
+  become_method: sudo
+  #become_user: root
+  shell: 'virt-install --connect qemu:///system -n {{ clustername }}_{{ inventory_hostname }} \
+         --vcpus {{ vm_cpu }} --ram {{ vm_ram }} --os-variant=fedora32 \
+         --import --network=bridge={{ briface }} --noautoconsole --wait \
+         --disk path={{ vm_stor }}/{{ clustername }}_{{ inventory_hostname }}.qcow2 \
+         --install kernel={{ kernelpath }},initrd={{ initrdpath }},kernel_args=ip="{{ ansible_host }}::{{ vm_gw }}:{{ vm_net }}:{{ inventory_hostname }}:{{ vm_iface }}:none:{{ vm_dns }} rd.neednet=1 coreos.inst=yes coreos.inst.install_dev={{ vm_disk }} coreos.live.rootfs_url=http://{{ http_server }}/{{ root_img }} coreos.inst.ignition_url=http://{{ http_server }}/{{ clustername }}/{{ vm_ignition }}"'
+  register: provision_result
+
+- debug:
+    var: provision_result
+
+...

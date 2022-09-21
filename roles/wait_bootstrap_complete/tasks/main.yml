@@ -1,0 +1,8 @@
+---
+
+#./openshift-install wait-for bootstrap-complete --log-level debug --dir=okd4a/
+
+- name: wait_bootstrap_complete
+  shell: '{{ workdir }}/openshift-install wait-for bootstrap-complete --log-level debug --dir={{ workdir }}/{{ clustername }}/'
+
+...

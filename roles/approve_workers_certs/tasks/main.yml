@@ -1,0 +1,15 @@
+---
+
+- name: approve new workers certificates
+  #shell: export KUBECONFIG='{{ workdir }}/{{ clustername }}/auth/kubeconfig'; oc get csr -o go-template='{{ '{{' }}range .items{{ '}}' }}{{ '{{' }}if not .status{{ '}}' }}{{ '{{' }}.metadata.name{{ '}}' }}{{ '{{' }}"\n"{{ '}}' }}{{ '{{' }}end{{ '}}' }}{{ '{{' }}end{{ '}}' }}' | xargs oc adm certificate approve
+  shell: export KUBECONFIG='{{ workdir }}/{{ clustername }}/auth/kubeconfig'; {% raw %} oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' {% endraw %} 2>/dev/null |  xargs oc adm certificate approve 2>/dev/null ; oc get nodes | grep worker | grep -v NotReady | wc -l
+  register: result
+  until: result.stdout == '{{ groups['workers'] | length }}'
+  retries: 30
+  delay: 60
+
+- debug:
+    var: result
+
+
+...

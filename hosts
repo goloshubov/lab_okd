@@ -1,0 +1,65 @@
+
+# bastion + httpd
+[bastion]
+bastion.okd4a.example.com ansible_host=192.168.35.208 ansible_user=root
+
+[bastion:vars]
+workdir=/root/okd
+httpdrootdir=/var/www/html
+
+
+# lb (haproxy)
+[lb]
+lb.okd4a.example.com ansible_host=192.168.35.209 ansible_user=root
+
+## TODO dns
+#[dns]
+#infra.okd4a.example.com ansible_host=192.168.35.250 ansible_user=root
+## TODO dhcp
+#[dhcp]
+#infra.okd4a.example.com ansible_host=192.168.35.250 ansible_user=root
+
+#_______________________________________________________________________________
+[cluster:children]
+bootstrap
+masters
+workers
+
+[bootstrap]
+bootstrap.okd4a.example.com ansible_host=192.168.35.210 vm_cpu=4 vm_ram=16384 vm_disksize=100 vm_ignition=bootstrap.ign vm_stor="/var/lib/libvirt/images"
+
+[masters]
+master0.okd4a.example.com ansible_host=192.168.35.211 vm_cpu=4 vm_ram=16384 vm_disksize=100 vm_ignition=master.ign vm_stor="/mnt/nvme01_1.5TiB/libvirt/images"
+master1.okd4a.example.com ansible_host=192.168.35.212 vm_cpu=4 vm_ram=16384 vm_disksize=100 vm_ignition=master.ign vm_stor="/mnt/nvme01_1.5TiB/libvirt/images"
+master2.okd4a.example.com ansible_host=192.168.35.213 vm_cpu=4 vm_ram=16384 vm_disksize=100 vm_ignition=master.ign vm_stor="/mnt/nvme01_1.5TiB/libvirt/images"
+
+[workers]
+worker0.okd4a.example.com ansible_host=192.168.35.214 vm_cpu=4 vm_ram=16384 vm_disksize=100 vm_ignition=worker.ign vm_stor="/mnt/ssd01_0.23TiB/libvirt/images"
+worker1.okd4a.example.com ansible_host=192.168.35.215 vm_cpu=4 vm_ram=16384 vm_disksize=100 vm_ignition=worker.ign vm_stor="/mnt/ssd01_0.23TiB/libvirt/images"
+
+
+#_______________________________________________________________________________
+[cluster:vars]
+http_server=192.168.35.208:8080
+
+# root_img is in httpdrootdir on bastion host
+root_img=fedora-coreos-35.20220327.3.0-live-rootfs.x86_64.img
+kernelpath=/home/goloshubov/okd/4.11.0-0.okd-2022-08-20-022919/fedora-coreos-35.20220327.3.0/fedora-coreos-35.20220327.3.0-live-kernel-x86_64
+initrdpath=/home/goloshubov/okd/4.11.0-0.okd-2022-08-20-022919/fedora-coreos-35.20220327.3.0/fedora-coreos-35.20220327.3.0-live-initramfs.x86_64.img
+briface=br0
+
+vm_disk=vda
+vm_iface=enp1s0
+vm_net=255.255.255.0
+vm_gw=192.168.35.1
+vm_dns=192.168.35.250
+
+
+#_______________________________________________________________________________
+[all:vars]
+clustername=okd4a
+basedomain=example.com
+
+# genereates in playbook
+#sshkey='ssh-rsa ...'
+
